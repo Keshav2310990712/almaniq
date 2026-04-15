@@ -48,6 +48,15 @@ It is built with:
 - `/bookings` - Booking management
 - `/book/:slug` - Public booking page
 
+## Live Deployment
+
+- Frontend (Vercel): `https://almaniq.vercel.app/`
+- Backend (Render): `https://almaniq.onrender.com`
+- Health check: `https://almaniq.onrender.com/api/health`
+
+Example public booking page:
+- `https://almaniq.vercel.app/book/15min-intro`
+
 ## Run Locally
 
 ### 1. Prepare PostgreSQL
@@ -150,7 +159,120 @@ Once both servers are running, you can test the app quickly like this:
 
 ## Production
 
-Production deployment steps, environment variables, and hosting notes will be added here later.
+This project is deployed with:
+
+- `Neon` for PostgreSQL
+- `Render` for the backend API
+- `Vercel` for the frontend
+
+### Production URLs
+
+- Frontend: `https://almaniq.vercel.app/`
+- Backend API base: `https://almaniq.onrender.com/api`
+- Backend health: `https://almaniq.onrender.com/api/health`
+
+### Minimal Production Setup
+
+1. Create a Neon PostgreSQL database and copy the connection string.
+2. Deploy `backend/` to Render as a Node web service.
+3. Add the backend environment variables in Render.
+4. Let the backend start once so `ensureSchema()` can create/update tables automatically.
+5. Run the existing seed script if you want starter availability and sample event types.
+6. Deploy `client/` to Vercel.
+7. Add the frontend environment variable in Vercel so the UI points to the Render API.
+
+### Render Backend Configuration
+
+Use `backend/` as the service root.
+
+- Build command: `npm install`
+- Start command: `npm start`
+
+Recommended backend environment variables:
+
+```env
+NODE_ENV=production
+PORT=10000
+DATABASE_URL=your_neon_connection_string
+DATABASE_SSL=true
+CORS_ORIGIN=https://almaniq.vercel.app
+APP_URL=https://almaniq.vercel.app
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+MAIL_FROM=Almaniq <no-reply@yourdomain.com>
+```
+
+Notes:
+- `DATABASE_SSL=true` is the usual setting for Neon-hosted Postgres.
+- `CORS_ORIGIN` supports comma-separated values if you want to allow preview or localhost origins too.
+- Email is optional for deployment, but confirmations/cancellations/reschedules need valid SMTP settings.
+
+### Vercel Frontend Configuration
+
+Use `client/` as the project root.
+
+- Build command: `npm run build`
+- Output directory: `dist`
+
+Required frontend environment variable:
+
+```env
+VITE_API_BASE_URL=https://almaniq.onrender.com/api
+```
+
+Routing note:
+- `client/vercel.json` already rewrites all frontend routes to `index.html`, so routes like `/book/15min-intro` work correctly on refresh.
+
+### Database Seed
+
+The seed file already exists at `backend/src/db/seeds/seed.sql`.
+
+Run it against Neon only if you want demo data:
+
+```bash
+psql "your_neon_connection_string" -f backend/src/db/seeds/seed.sql
+```
+
+The seed inserts:
+- default availability settings
+- timezone as `Asia/Kolkata`
+- break mode set to off
+- sample event types such as `15min-intro`, `30min-meeting`, and `project-review`
+
+### Production API Checks
+
+Quick endpoints you can use to verify the deployed backend:
+
+- `GET https://almaniq.onrender.com/api/health`
+- `GET https://almaniq.onrender.com/api/event-types`
+- `GET https://almaniq.onrender.com/api/availability`
+- `GET https://almaniq.onrender.com/api/bookings`
+- `GET https://almaniq.onrender.com/api/slots?slug=15min-intro&date=2026-04-20&timezone=Asia/Kolkata`
+- `GET https://almaniq.onrender.com/api/availability/heatmap?slug=15min-intro&month=2026-04&timezone=Asia/Kolkata`
+
+Useful write endpoints:
+
+- `POST https://almaniq.onrender.com/api/event-types`
+- `PATCH https://almaniq.onrender.com/api/event-types/:id`
+- `DELETE https://almaniq.onrender.com/api/event-types/:id`
+- `POST https://almaniq.onrender.com/api/bookings`
+- `PATCH https://almaniq.onrender.com/api/bookings/:uid/cancel`
+- `POST https://almaniq.onrender.com/api/bookings/:uid/reschedule`
+- `POST https://almaniq.onrender.com/api/availability`
+- `PATCH https://almaniq.onrender.com/api/availability/break`
+
+### Production Checklist
+
+- frontend points to the Render API through `VITE_API_BASE_URL`
+- backend `CORS_ORIGIN` includes the Vercel domain
+- backend `DATABASE_URL` points to Neon
+- backend `DATABASE_SSL=true` for hosted Postgres
+- seed data has been applied only if sample records are desired
+- SMTP values are added if email delivery is expected
+- `https://almaniq.onrender.com/api/health` returns `{ "ok": true }`
 
 ## Notes
 
