@@ -1,78 +1,76 @@
-import nodemailer from "nodemailer";
-import dns from "dns";
-dns.setDefaultResultOrder("ipv4first");
+// import nodemailer from "nodemailer";
+// import dns from "dns";
+import { Resend } from "resend";
 
-let transporterPromise = null;
-let missingConfigLogged = false;
+const resend = new Resend(process.env.RESEND_API_KEY);
+// dns.setDefaultResultOrder("ipv4first");
+
+// let transporterPromise = null;
+// let missingConfigLogged = false;
 
 function getMailConfig() {
   return {
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
     from: process.env.MAIL_FROM,
     appUrl: (process.env.APP_URL || "http://localhost:8080").replace(/\/$/, "")
   };
 }
 
-function hasRequiredConfig(config) {
-  return Boolean(config.host && config.port && config.user && config.pass && config.from);
-}
+// function hasRequiredConfig(config) {
+//   return Boolean(config.host && config.port && config.user && config.pass && config.from);
+// }
 
-async function getTransporter() {
-  if (!transporterPromise) {
-    transporterPromise = Promise.resolve().then(async () => {
-      const config = getMailConfig();
+// async function getTransporter() {
+//   if (!transporterPromise) {
+//     transporterPromise = Promise.resolve().then(async () => {
+//       const config = getMailConfig();
 
-      if (!hasRequiredConfig(config)) {
-        if (!missingConfigLogged) {
-          console.warn(
-            "Mailer is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM, and APP_URL to enable emails."
-          );
-          missingConfigLogged = true;
-        }
+//       if (!hasRequiredConfig(config)) {
+//         if (!missingConfigLogged) {
+//           console.warn(
+//             "Mailer is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM, and APP_URL to enable emails."
+//           );
+//           missingConfigLogged = true;
+//         }
 
-        return null;
-      }
+//         return null;
+//       }
 
-      const transporter = nodemailer.createTransport({
-        host: config.host,
-        port: config.port,
-        secure: config.secure,
-        auth: {
-          user: config.user,
-          pass: config.pass
-        },
-        family: 4
-      });
+//       const transporter = nodemailer.createTransport({
+//         host: config.host,
+//         port: config.port,
+//         secure: config.secure,
+//         auth: {
+//           user: config.user,
+//           pass: config.pass
+//         },
+//         family: 4
+//       });
 
-      await transporter.verify();
-      return transporter;
-    }).catch((error) => {
-      transporterPromise = null;
-      throw error;
-    });
-  }
+//       await transporter.verify();
+//       return transporter;
+//     }).catch((error) => {
+//       transporterPromise = null;
+//       throw error;
+//     });
+//   }
 
-  return transporterPromise;
-}
+//   return transporterPromise;
+// }
 
 export async function sendBookingEmail({ type, booking, eventType, timezone = "UTC" }) {
-const transporter = await getTransporter();
+// const transporter = await getTransporter();
 
 console.log("EMAIL_ATTEMPT_START");
 
 console.log("EMAIL_INPUT:", {
-  transporter: !!transporter,
+  resend: true,
   email: booking?.email,
   eventType: !!eventType
 });
 
-if (!transporter || !booking?.email || !eventType) {
+if (!booking?.email || !eventType) {
   console.log("EMAIL_SKIPPED", {
-    transporter: !!transporter,
+    resend: true,
     email: booking?.email,
     eventType: !!eventType
   });
@@ -87,13 +85,13 @@ if (!transporter || !booking?.email || !eventType) {
 
 try {
    console.log("EMAIL_SENDING_TO:", booking.email);
-  await transporter.sendMail({
-    from: config.from,
-    to: booking.email,
-    subject,
-    text: buildTextBody({ intro, details }),
-    html: buildHtmlBody({ intro, details })
-  });
+await resend.emails.send({
+  from: config.from,
+  to: booking.email,
+  subject,
+  html: buildHtmlBody({ intro, details }),
+  text: buildTextBody({ intro, details })
+});
   console.log("EMAIL_SENT_SUCCESS");
 } catch (err) {
   console.error("EMAIL_SEND_FAILED:", err.message);
