@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
+dns.setDefaultResultOrder("ipv4first");
 
 let transporterPromise = null;
 let missingConfigLogged = false;
@@ -42,7 +44,8 @@ async function getTransporter() {
         auth: {
           user: config.user,
           pass: config.pass
-        }
+        },
+        family: 4
       });
 
       await transporter.verify();
@@ -69,6 +72,7 @@ export async function sendBookingEmail({ type, booking, eventType, timezone = "U
   const subject = getSubject(type, eventType.title);
   const intro = getIntro(type, booking.name, eventType.title);
 
+try {
   await transporter.sendMail({
     from: config.from,
     to: booking.email,
@@ -76,6 +80,9 @@ export async function sendBookingEmail({ type, booking, eventType, timezone = "U
     text: buildTextBody({ intro, details }),
     html: buildHtmlBody({ intro, details })
   });
+} catch (err) {
+  console.error("Failed to send booking email:", err);
+}
 
   return { skipped: false };
 }
