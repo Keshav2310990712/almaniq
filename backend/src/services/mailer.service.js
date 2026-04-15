@@ -60,11 +60,24 @@ async function getTransporter() {
 }
 
 export async function sendBookingEmail({ type, booking, eventType, timezone = "UTC" }) {
-  const transporter = await getTransporter();
+const transporter = await getTransporter();
 
-  if (!transporter || !booking?.email || !eventType) {
-    return { skipped: true };
-  }
+console.log("EMAIL_ATTEMPT_START");
+
+console.log("EMAIL_INPUT:", {
+  transporter: !!transporter,
+  email: booking?.email,
+  eventType: !!eventType
+});
+
+if (!transporter || !booking?.email || !eventType) {
+  console.log("EMAIL_SKIPPED", {
+    transporter: !!transporter,
+    email: booking?.email,
+    eventType: !!eventType
+  });
+  return { skipped: true };
+}
 
   const config = getMailConfig();
   const bookingUrl = `${config.appUrl}/book/${eventType.slug}`;
@@ -73,6 +86,7 @@ export async function sendBookingEmail({ type, booking, eventType, timezone = "U
   const intro = getIntro(type, booking.name, eventType.title);
 
 try {
+   console.log("EMAIL_SENDING_TO:", booking.email);
   await transporter.sendMail({
     from: config.from,
     to: booking.email,
@@ -80,8 +94,9 @@ try {
     text: buildTextBody({ intro, details }),
     html: buildHtmlBody({ intro, details })
   });
+  console.log("EMAIL_SENT_SUCCESS");
 } catch (err) {
-  console.error("Failed to send booking email:", err);
+  console.error("EMAIL_SEND_FAILED:", err.message);
 }
 
   return { skipped: false };
