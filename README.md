@@ -7,7 +7,7 @@ It is built with:
 - `backend/` - Node.js + Express
 - `PostgreSQL` - persistence for event types, availability, and bookings
 
-## What We Built
+## Core Features
 
 - Event type management
   Create, edit, enable/disable, and delete booking event types.
