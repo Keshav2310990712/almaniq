@@ -53,8 +53,20 @@ It is built with:
 ### 1. Prepare PostgreSQL
 
 - Create a PostgreSQL database for the project.
+- Copy env files first:
+
+```bash
+cp backend/.env.example backend/.env
+cp client/.env.example client/.env
+```
+
 - Add your database connection in `backend/.env`.
 - The backend runs `ensureSchema()` on startup, so missing columns added in development are applied automatically.
+
+Important before pushing to GitHub:
+- never commit real `.env` files
+- rotate any secrets that were ever stored in a tracked file
+- keep only `.env.example` in the repository
 
 If you want sample data for quick testing, run the seed file:
 
@@ -93,6 +105,23 @@ Then open the frontend URL shown by Vite, usually:
 ```bash
 http://localhost:5173
 ```
+
+### Environment Variables
+
+Backend example values are in `backend/.env.example`.
+
+Main backend variables:
+- `PORT` - backend port
+- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_SSL` - set to `true` for hosted databases that require SSL
+- `CORS_ORIGIN` - allowed frontend origin(s), comma-separated if needed
+- `APP_URL` - public frontend URL used in emails
+- `SMTP_*` and `MAIL_FROM` - email configuration
+
+Frontend example values are in `client/.env.example`.
+
+Main frontend variable:
+- `VITE_API_BASE_URL` - backend API base URL
 
 ## Local Testing Flow
 
