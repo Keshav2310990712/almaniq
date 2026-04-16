@@ -23,7 +23,7 @@ It is built with:
 - Availability heatmap
   Public booking page shows how free or busy each day is.
 - Email notifications
-  Booking confirmation, cancellation, and reschedule via Resend.
+  Booking confirmation, cancellation, and reschedule via Nodemailer.
 
 ## How The App Works
 
@@ -36,7 +36,7 @@ It is built with:
 4. User books a slot
    The booking page checks availability, existing bookings, break mode, and then shows valid slots.
 5. Booking is saved
-   The backend stores the booking in PostgreSQL and sends email notifications if configured.
+   The backend stores the booking in PostgreSQL and sends email notifications of the complete booking.
 6. Manage bookings
    From the dashboard, bookings can be viewed, cancelled, or rescheduled.
 7. Pause booking anytime
@@ -130,7 +130,7 @@ Main backend variables:
 - `DATABASE_SSL` - set to `true` for hosted databases that require SSL
 - `CORS_ORIGIN` - allowed frontend origin(s), comma-separated if needed
 - `APP_URL` - public frontend URL used in emails
-- `RESEND_API_KEY` and `MAIL_FROM` - email configuration
+- `EMAIL_USER`, `EMAIL_PASS` and `MAIL_FROM` - email configuration
 
 Frontend example values are in `client/.env.example`.
 
@@ -202,7 +202,8 @@ DATABASE_URL=your_neon_connection_string
 DATABASE_SSL=true
 CORS_ORIGIN=https://almaniq.vercel.app
 APP_URL=https://almaniq.vercel.app
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_USER=no-reply@yourdomain.com
+EMAIL_PASS=xxxxxxxxxxxxxxxx
 MAIL_FROM=Almaniq <no-reply@yourdomain.com>
 ```
 
@@ -210,7 +211,7 @@ Notes:
 
 - `DATABASE_SSL=true` is the usual setting for Neon-hosted Postgres.
 - `CORS_ORIGIN` supports comma-separated values if you want to allow preview or localhost origins too.
-- Email is optional for deployment, but confirmations/cancellations/reschedules need valid Resend settings.
+- Email is optional for deployment, but confirmations/cancellations/reschedules need valid Nodemailer settings.
 
 ### Vercel Frontend Configuration
 
@@ -275,11 +276,11 @@ Useful write endpoints:
 - backend `DATABASE_URL` points to Neon
 - backend `DATABASE_SSL=true` for hosted Postgres
 - seed data has been applied only if sample records are desired
-- RESEND_API_KEY is added if email delivery is expected
+- EMAIL_PASS and EMAIL_USER is added if email delivery is expected
 - `https://almaniq.onrender.com/api/health` returns `{ "ok": true }`
 
 ## Notes
 
 - PostgreSQL is required for the backend.
-- Resend config is needed in `backend/.env` if email sending is enabled.
+- SMTP config is needed in `backend/.env` if email sending is enabled.
 - Seed data is available in `backend/src/db/seeds/seed.sql`.
