@@ -83,18 +83,20 @@ if (!booking?.email || !eventType) {
   const subject = getSubject(type, eventType.title);
   const intro = getIntro(type, booking.name, eventType.title);
 
-try {
-   console.log("EMAIL_SENDING_TO:", booking.email);
-await resend.emails.send({
+const response = await resend.emails.send({
   from: config.from,
   to: booking.email,
   subject,
   html: buildHtmlBody({ intro, details }),
   text: buildTextBody({ intro, details })
 });
-  console.log("EMAIL_SENT_SUCCESS");
-} catch (err) {
-  console.error("EMAIL_SEND_FAILED:", err.message);
+
+console.log("RESEND_RESPONSE:", response);
+
+if (response.error) {
+  console.error("RESEND_ERROR:", response.error);
+} else {
+  console.log("EMAIL_SENT_SUCCESS:", response.id);
 }
 
   return { skipped: false };
