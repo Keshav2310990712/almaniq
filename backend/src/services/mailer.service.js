@@ -1,107 +1,57 @@
-// import nodemailer from "nodemailer";
-// import dns from "dns";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-// dns.setDefaultResultOrder("ipv4first");
-
-// let transporterPromise = null;
-// let missingConfigLogged = false;
-
-function getMailConfig() {
-  return {
-    from: process.env.MAIL_FROM,
-    appUrl: (process.env.APP_URL || "http://localhost:8080").replace(/\/$/, "")
-  };
-}
-
-// function hasRequiredConfig(config) {
-//   return Boolean(config.host && config.port && config.user && config.pass && config.from);
-// }
-
-// async function getTransporter() {
-//   if (!transporterPromise) {
-//     transporterPromise = Promise.resolve().then(async () => {
-//       const config = getMailConfig();
-
-//       if (!hasRequiredConfig(config)) {
-//         if (!missingConfigLogged) {
-//           console.warn(
-//             "Mailer is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM, and APP_URL to enable emails."
-//           );
-//           missingConfigLogged = true;
-//         }
-
-//         return null;
-//       }
-
-//       const transporter = nodemailer.createTransport({
-//         host: config.host,
-//         port: config.port,
-//         secure: config.secure,
-//         auth: {
-//           user: config.user,
-//           pass: config.pass
-//         },
-//         family: 4
-//       });
-
-//       await transporter.verify();
-//       return transporter;
-//     }).catch((error) => {
-//       transporterPromise = null;
-//       throw error;
-//     });
-//   }
-
-//   return transporterPromise;
-// }
-
-export async function sendBookingEmail({ type, booking, eventType, timezone = "UTC" }) {
-// const transporter = await getTransporter();
-
-console.log("EMAIL_ATTEMPT_START");
-
-console.log("EMAIL_INPUT:", {
-  resend: true,
-  email: booking?.email,
-  eventType: !!eventType
+// ✅ SMTP Transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
-if (!booking?.email || !eventType) {
-  console.log("EMAIL_SKIPPED", {
-    resend: true,
+// ✅ Main Function
+export async function sendBookingEmail({ type, booking, eventType, timezone = "UTC" }) {
+
+  console.log("EMAIL_ATTEMPT_START");
+
+  console.log("EMAIL_INPUT:", {
     email: booking?.email,
     eventType: !!eventType
   });
-  return { skipped: true };
-}
 
-  const config = getMailConfig();
-  const bookingUrl = `${config.appUrl}/book/${eventType.slug}`;
+  if (!booking?.email || !eventType) {
+    console.log("EMAIL_SKIPPED", {
+      email: booking?.email,
+      eventType: !!eventType
+    });
+    return { skipped: true };
+  }
+
+  const bookingUrl = `${process.env.APP_URL}/book/${eventType.slug}`;
   const details = getBookingDetails({ booking, eventType, timezone, bookingUrl });
   const subject = getSubject(type, eventType.title);
   const intro = getIntro(type, booking.name, eventType.title);
 
-const response = await resend.emails.send({
-  from: config.from,
-  to: booking.email,
-  subject,
-  html: buildHtmlBody({ intro, details }),
-  text: buildTextBody({ intro, details })
-});
+  try {
+    console.log("EMAIL_SENDING_TO:", booking.email);
 
-console.log("RESEND_RESPONSE:", response);
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: booking.email,
+      subject,
+      html: buildHtmlBody({ intro, details })
+    });
 
-if (response.error) {
-  console.error("RESEND_ERROR:", response.error);
-} else {
-  console.log("EMAIL_SENT_SUCCESS:", response.id);
-}
+    console.log("EMAIL_SENT_SUCCESS:", info.response);
+
+  } catch (err) {
+    console.error("EMAIL_SEND_FAILED:", err.message);
+  }
 
   return { skipped: false };
 }
 
+// ✅ Subject Logic
 function getSubject(type, eventTitle) {
   switch (type) {
     case "cancelled":
@@ -114,6 +64,7 @@ function getSubject(type, eventTitle) {
   }
 }
 
+// ✅ Intro Message
 function getIntro(type, guestName, eventTitle) {
   switch (type) {
     case "cancelled":
@@ -126,6 +77,7 @@ function getIntro(type, guestName, eventTitle) {
   }
 }
 
+// ✅ Booking Details
 function getBookingDetails({ booking, eventType, timezone, bookingUrl }) {
   return [
     { label: "Event", value: eventType.title },
@@ -139,6 +91,7 @@ function getBookingDetails({ booking, eventType, timezone, bookingUrl }) {
   ];
 }
 
+// ✅ Date Formatting
 function formatBookingDateTime(date, time, timezone) {
   const dateTime = new Date(`${date}T${time}:00`);
 
@@ -149,6 +102,7 @@ function formatBookingDateTime(date, time, timezone) {
   }).format(dateTime);
 }
 
+// ✅ Text Body
 function buildTextBody({ intro, details }) {
   return `${intro}
 
@@ -156,6 +110,7 @@ ${details.map((item) => `${item.label}: ${item.value}`).join("\n")}
 `;
 }
 
+// ✅ HTML Body
 function buildHtmlBody({ intro, details }) {
   return `
     <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
@@ -178,6 +133,7 @@ function buildHtmlBody({ intro, details }) {
   `;
 }
 
+// ✅ Escape HTML
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -187,6 +143,7 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// ✅ Capitalize
 function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
